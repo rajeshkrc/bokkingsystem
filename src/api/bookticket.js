@@ -79,7 +79,7 @@ bookTicketRouter.post("/bookticket", validations, async (req, res, next) => {
 
     } catch (err) {
         console.log(err);
-        resData = getResponseObject(resStatusCode.error, "", "Unable to validate user!");        
+        resData = getResponseObject(resStatusCode.error, "", "Unable to validate train!");        
     }   
     
     res.status(resData.statusCode).json(resData); 
