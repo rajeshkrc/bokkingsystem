@@ -52,6 +52,7 @@ Build image and run containers
 
 ```bash
   docker-compose up
+  npm run seed
 ```
 
 ### - Manual setup 
@@ -76,6 +77,7 @@ Install dependencies
 Start the server
 
 ```bash
+  npm run seed
   npm run start
 ```
 
