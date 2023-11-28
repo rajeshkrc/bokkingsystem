@@ -27,7 +27,10 @@ const validations = [
  */
 bookTicketRouter.post("/bookticket", validations, async (req, res, next) => {
     let { username, seats, trainno } = req.body;
-    let resData = {};
+    let resData = {
+        successMessage: "",
+        errorMessage: "",
+    };
 
     try {
         const validateResult = validationResult(req);
@@ -41,41 +44,49 @@ bookTicketRouter.post("/bookticket", validations, async (req, res, next) => {
         const trainData = await getSeats(trainno) 
 
         if (!trainData) {
-            resData.errorMessage = "Invalid train";        
+            resData.errorMessage = "Invalid train";   
+            resData.statusCode =  resStatusCode.error;
+    
+            resData = getResponseObject(resData.statusCode, "", resData.errorMessage, resData.data);       
         } else {              
                 
             let availableSeats = null;
-                if (trainData.length) {
-                    /**
-                     * Checking availibilty of seats in one row
-                     */
-                    availableSeats = searchSeatsInRow(trainData[0].coachDetails[0].rowDetails, seats) 
-                    
-                    /**
-                     * If seats are not available in one row then search near by
-                     */
-                    if (!availableSeats) {                        
-                        availableSeats = searchSeatsNearBy(trainData[0].coachDetails[0].rowDetails, seats);  
-                                        
-                    } 
-                }
-
+            if (trainData.length) {
                 /**
-                 * make reservation on available seats
+                 * Checking availibilty of seats in one row
                  */
-                if (availableSeats && availableSeats.length) {
-                   await updateSeatStatus(availableSeats, username);
-                }
+                availableSeats = searchSeatsInRow(trainData[0].coachDetails[0].rowDetails, seats) 
+                
+                /**
+                 * If seats are not available in one row then search near by
+                 */
+                if (!availableSeats) {                        
+                    availableSeats = searchSeatsNearBy(trainData[0].coachDetails[0].rowDetails, seats);  
+                                    
+                } 
+            }
+
+            /**
+             * make reservation on available seats
+             */
+            if (availableSeats && availableSeats.length) {                    
+                await updateSeatStatus(availableSeats, username);
+                resData.statusCode =  resStatusCode.ok; 
+                resData.successMessage = "Booking success";
+            } else {
+                resData.errorMessage = `Reservation not available for ${seats} seat/s.`;  
+                resData.statusCode =  resStatusCode.error; 
+                resData.successMessage = "";                    
+            }
+        
+            const bookedData = await getBookingData();
+            availableSeats = mergeAndPreaperChart(trainData[0].coachDetails[0].rowDetails, bookedData);
             
-                const bookedData = await getBookingData();
-                availableSeats = mergeAndPreaperChart(trainData[0].coachDetails[0].rowDetails, bookedData);
-              
-                resData.data = availableSeats;    
+            resData.data = availableSeats;    
+            resData = getResponseObject(resData.statusCode, resData.successMessage, resData.errorMessage, resData.data);
         
         }
-        resData.statusCode =  resStatusCode.ok;
-    
-        resData = getResponseObject(resData.statusCode, "", resData.errorMessage, resData.data);        
+              
 
     } catch (err) {
         console.log(err);
